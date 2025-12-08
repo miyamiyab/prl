@@ -1,0 +1,26 @@
+{
+  "companyB": {
+    "id": "companyB",
+    "did": "did:ethr:eip155:31337:0x74C9Fc20a174C10D9E628657A627Bbb1371be859",
+    "managed": true,
+    "address": "0x74C9Fc20a174C10D9E628657A627Bbb1371be859",
+    "ethPrivateKey": "0x9d68ee115de36c8ce4aa56e781e75c63626694f8ed6b1af8c91e185bab5a22eb",
+    "privateJwk": {
+      "kty": "EC",
+      "x": "rt-_XNp0yAXs-WsohWbHmKW9OcEy6L_KilD8nRfmkas",
+      "y": "qgLrjko9hMgvTmfPN-tZqZtcuvFRGMKfxtU49d-8ayE",
+      "crv": "P-256",
+      "d": "cghcIIoKow5KJrtcTKLJgVw7SRIn6k5JY5qL1GvLekk",
+      "alg": "ES256",
+      "kid": "issuer-companyB-key-1"
+    },
+    "publicJwk": {
+      "kty": "EC",
+      "x": "rt-_XNp0yAXs-WsohWbHmKW9OcEy6L_KilD8nRfmkas",
+      "y": "qgLrjko9hMgvTmfPN-tZqZtcuvFRGMKfxtU49d-8ayE",
+      "crv": "P-256",
+      "alg": "ES256",
+      "kid": "issuer-companyB-key-1"
+    }
+  }
+}

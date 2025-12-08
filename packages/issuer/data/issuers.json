@@ -1,0 +1,22 @@
+[
+  {
+    "issuerId": "companyB",
+    "did": "did:ethr:eip155:31337:0x2A36FA11ed761C6febe12f84cC35c5B0cf0A5131",
+    "address": "0x2A36FA11ed761C6febe12f84cC35c5B0cf0A5131",
+    "publicJwk": {
+      "kty": "EC",
+      "x": "xrFvxgtAgduBK-IEDCzKO4kXxL37y4qg6wv70ibygic",
+      "y": "YwHNneN1XwpAp46pYu7EzmgcXgFcwVPCj5n9uW8zgjA",
+      "crv": "secp256k1"
+    },
+    "privateJwk": {
+      "kty": "EC",
+      "x": "xrFvxgtAgduBK-IEDCzKO4kXxL37y4qg6wv70ibygic",
+      "y": "YwHNneN1XwpAp46pYu7EzmgcXgFcwVPCj5n9uW8zgjA",
+      "crv": "secp256k1",
+      "d": "hHv8RnvJzBV6auIIoLUNJmBi9LAwjnv1wX80O2D0MXs"
+    },
+    "managed": true,
+    "createdAt": "2025-12-15T17:31:04.985Z"
+  }
+]

@@ -1,0 +1,28 @@
+{
+  "name": "vc-issuer-sample",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "gen-keys": "node dist/gen-keys.js",
+    "issue": "node dist/issue-vc.js",
+    "verify": "node dist/verify-vc.js",
+    "start": "node dist/issue-vc.js",
+    "demo": "node dist/issue-and-verify-vc.js",
+    "api": "node dist/server.js"
+  },
+  "dependencies": {
+    "@types/cors": "^2.8.19",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "ethers": "^6.16.0",
+    "express": "^5.2.1",
+    "jose": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.19.1",
+    "hardhat": "^3.0.17",
+    "typescript": "^5.9.3"
+  }
+}

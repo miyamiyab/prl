@@ -1,0 +1,35 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_20-ecde9344dcfc58d240611fda30b6e6d0512090aa",
+  "solcVersion": "0.8.20",
+  "solcLongVersion": "0.8.20+commit.a1b79de6",
+  "userSourceNameMap": {
+    "contracts/VcRegistry.sol": "project/contracts/VcRegistry.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "shanghai",
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/VcRegistry.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract VcRegistry {\n    struct Record {\n        address issuer;\n        uint256 issuedAt;\n        bool revoked;\n    }\n\n    mapping(bytes32 => Record) public records;\n\n    event VcRegistered(bytes32 indexed vcHash, address indexed issuer);\n    event VcRevoked(bytes32 indexed vcHash, address indexed issuer);\n\n    function registerVc(bytes32 vcHash) external {\n        require(records[vcHash].issuedAt == 0, \"already registered\");\n\n        records[vcHash] = Record({\n            issuer: msg.sender,\n            issuedAt: block.timestamp,\n            revoked: false\n        });\n\n        emit VcRegistered(vcHash, msg.sender);\n    }\n\n    function revokeVc(bytes32 vcHash) external {\n        Record storage rec = records[vcHash];\n        require(rec.issuedAt != 0, \"not registered\");\n        require(rec.issuer == msg.sender, \"not issuer\");\n\n        rec.revoked = true;\n        emit VcRevoked(vcHash, msg.sender);\n    }\n}\n"
+      }
+    }
+  }
+}

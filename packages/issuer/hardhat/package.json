@@ -1,0 +1,16 @@
+{
+  "name": "vc-onchain-local",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "node": "npx hardhat node",
+    "deploy": "node scripts/deploy-vc.mjs"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^4.0.3",
+    "@types/node": "^22.8.5",
+    "hardhat": "^3.0.17",
+    "typescript": "~5.8.0"
+  }
+}

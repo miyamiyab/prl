@@ -1,0 +1,14 @@
+{
+  "name": "vc-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w vc-issuer-sample && npm run build -w vc-wallet-frontend",
+    "dev:issuer": "npm run start -w vc-issuer-sample",
+    "dev:wallet": "npm run dev -w vc-wallet-frontend",
+    "api": "npm run api -w vc-issuer-sample"
+  }
+}
