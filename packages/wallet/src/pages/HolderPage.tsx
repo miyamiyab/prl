@@ -1,186 +1,344 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo } from "react";
+import { useWallet } from "../wallet";
 
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
+type Profile = {
+  name: string;
+  age: number | string;
+  title: string;
+  company: string;
+  visibility: string;
+  skills: { label: string; tag: string }[];
+  experiences: {
+    period: string;
+    org: string;
+    tag: string;
+    roles: { period: string; title: string; tag: string }[];
+  }[];
+};
 
-const API_BASE = "http://localhost:3000";
+const defaultProfile: Profile = {
+  name: "山田 太郎",
+  age: 36,
+  title: "Web3開発者",
+  company: "ブロックチェーン講座株式会社",
+  visibility: "公開職歴冊",
+  skills: [
+    { label: "Solidity開発者", tag: "A社" },
+    { label: "会計システム開発PM", tag: "B社" },
+  ],
+  experiences: [
+    {
+      period: "2010〜2014",
+      org: "ブロックチェーン大学",
+      tag: "BC大",
+      roles: [
+        { period: "2012〜2013", title: "クリプトゼミ", tag: "BC大" },
+        { period: "2013〜2014", title: "NFTゼミ", tag: "BC大" },
+      ],
+    },
+    {
+      period: "2014〜2019",
+      org: "イーサリアム株式会社",
+      tag: "ETH社",
+      roles: [
+        { period: "2014〜2017", title: "●●プロジェクト", tag: "ETH社" },
+        { period: "2017〜2019", title: "経理部門", tag: "ETH社" },
+      ],
+    },
+    {
+      period: "2019〜",
+      org: "ブロックチェーン講座(株)",
+      tag: "ETH社",
+      roles: [
+        { period: "2014〜2017", title: "●●プロジェクト", tag: "ETH社" },
+        { period: "2017〜2019", title: "経理部門", tag: "ETH社" },
+      ],
+    },
+  ],
+};
 
-type PublishedVC = {
-  id: string;
-  issuedAt: string;
-  issuerId: string;
-  holderAddress: string;
-  holderDid: string;
-  vcJwt: string;
+const profilesByAddress: Record<string, Profile> = {
+  "0x70997970c51812dc3a010c7d01b50e0d17dc79c8": defaultProfile,
+  "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266": {
+    ...defaultProfile,
+    name: "佐藤 花子",
+    age: 34,
+    title: "ブロックチェーンPM",
+    skills: [
+      { label: "プロジェクト管理", tag: "C社" },
+      { label: "会計要件定義", tag: "D社" },
+    ],
+  },
 };
 
 function shorten(v: string, len = 6) {
   return v.length > len * 2 ? `${v.slice(0, len)}...${v.slice(-len)}` : v;
 }
 
-export default function HolderPage() {
-  const [status, setStatus] = useState<string | null>(null);
-  const [walletAddr, setWalletAddr] = useState<string | null>(null);
-
-  // Holder form
-  const [issuerId, setIssuerId] = useState("companyB");
-  const [holderName, setHolderName] = useState("Taro MetaMask");
-  const [holderRole, setHolderRole] = useState("Web3 Engineer");
-
-  // VC list
-  const [vcs, setVcs] = useState<PublishedVC[]>([]);
-
-  async function refreshVCs() {
-    const res = await fetch(`${API_BASE}/vcs`);
-    const data = await res.json();
-    setVcs(data.vcs ?? []);
-  }
-
-  useEffect(() => {
-    refreshVCs().catch(() => {});
-  }, []);
-
-  const myCredentials = useMemo(() => {
-    if (!walletAddr) return [];
-    const a = walletAddr.toLowerCase();
-    return vcs.filter((v) => v.holderAddress.toLowerCase() === a);
-  }, [vcs, walletAddr]);
-
-  async function connectWallet() {
-    if (!window.ethereum) {
-      alert("MetaMask が見つかりません。");
-      return;
-    }
-    try {
-      setStatus("ウォレット接続中…");
-      const accounts: string[] = await window.ethereum.request({ method: "eth_requestAccounts" });
-      const addr = accounts?.[0];
-      if (!addr) {
-        setStatus("アカウント取得に失敗しました。");
-        return;
-      }
-      setWalletAddr(addr);
-      setStatus(null);
-    } catch (e: any) {
-      setStatus(`ウォレット接続失敗: ${e?.message ?? e}`);
-    }
-  }
-
-  async function requestIssue() {
-    if (!walletAddr) {
-      alert("ウォレット接続が必要です。");
-      return;
-    }
-    try {
-      setStatus("発行依頼を送信中…");
-      const res = await fetch(`${API_BASE}/request-issue`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          holderAddress: walletAddr,
-          issuerId,
-          claims: { name: holderName, role: holderRole },
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setStatus(`依頼失敗: ${data?.error ?? "unknown"}`);
-        return;
-      }
-      setStatus("依頼を作成しました（Issuer 画面で発行してください）");
-    } catch (e: any) {
-      setStatus(`依頼失敗: ${e?.message ?? e}`);
-    }
-  }
-
+function ProfileCard({ profile, walletAddr, found }: { profile: Profile; walletAddr: string | null; found: boolean }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 16 }}>
-      {status && (
-        <div style={{ gridColumn: "1 / -1", padding: 10, borderRadius: 14, border: "1px solid rgba(148,163,184,0.35)", background: "rgba(15,23,42,0.9)", fontSize: 13 }}>
-          {status}
-        </div>
-      )}
-
-      {/* Left: Request */}
-      <div style={{ padding: 16, borderRadius: 16, border: "1px solid rgba(148,163,184,0.35)", background: "rgba(15,23,42,0.9)" }}>
-        <div style={{ fontWeight: 900, marginBottom: 10 }}>Holder — 発行依頼</div>
-
-        <button
-          onClick={connectWallet}
-          style={{ padding: "8px 12px", borderRadius: 999, border: "none", cursor: "pointer", background: "#22c55e", color: "#0f172a", fontWeight: 900 }}
-        >
-          Connect Wallet
-        </button>
-        <div style={{ marginTop: 8, fontFamily: "monospace", fontSize: 12, color: "#9ca3af" }}>
-          {walletAddr ? shorten(walletAddr, 6) : "not connected"}
-        </div>
-
-        <div style={{ marginTop: 14, fontSize: 12, marginBottom: 6 }}>Issuer ID</div>
-        <input value={issuerId} onChange={(e) => setIssuerId(e.target.value)} style={{ width: "100%", padding: 8, borderRadius: 12, border: "1px solid #4b5563", background: "#020617", color: "#e5e7eb", marginBottom: 10 }} />
-
-        <div style={{ fontSize: 12, marginBottom: 6 }}>name</div>
-        <input value={holderName} onChange={(e) => setHolderName(e.target.value)} style={{ width: "100%", padding: 8, borderRadius: 12, border: "1px solid #4b5563", background: "#020617", color: "#e5e7eb", marginBottom: 10 }} />
-
-        <div style={{ fontSize: 12, marginBottom: 6 }}>role</div>
-        <input value={holderRole} onChange={(e) => setHolderRole(e.target.value)} style={{ width: "100%", padding: 8, borderRadius: 12, border: "1px solid #4b5563", background: "#020617", color: "#e5e7eb", marginBottom: 12 }} />
-
-        <button
-          onClick={requestIssue}
-          disabled={!walletAddr}
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 14,
+        padding: 16,
+        borderRadius: 16,
+        border: "1px solid rgba(148,163,184,0.35)",
+        background: "#0b1220",
+      }}
+    >
+      <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+        <div
           style={{
-            padding: "10px 14px",
-            borderRadius: 999,
-            border: "none",
-            cursor: walletAddr ? "pointer" : "default",
-            background: walletAddr ? "#3b82f6" : "#4b5563",
-            color: "#e5e7eb",
-            fontWeight: 900,
+            width: 68,
+            height: 68,
+            borderRadius: "50%",
+            border: "1px solid rgba(148,163,184,0.5)",
+            background: "linear-gradient(145deg, #1f2937, #111827)",
+            flexShrink: 0,
           }}
-        >
-          Request VC issuance
-        </button>
-
-        {!walletAddr && <div style={{ marginTop: 8, fontSize: 12, color: "#f97316" }}>Holder 画面だけがウォレット接続します</div>}
+        />
+        <div style={{ display: "grid", gap: 4 }}>
+          <div style={{ fontWeight: 900, fontSize: 16 }}>
+            {profile.name}（{profile.age}歳）
+          </div>
+          <div style={{ fontSize: 13, color: "#cbd5e1" }}>{profile.title}</div>
+          <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: "18px" }}>
+            {profile.company}
+            <br />
+            {profile.visibility}
+          </div>
+          {walletAddr && (
+            <div style={{ fontSize: 11, color: found ? "#34d399" : "#f97316", marginTop: 4 }}>
+              {found ? "プロフィールを読み込みました" : "プロフィール未登録のためデフォルトを表示中"}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Right: My Credentials (holder-only label) */}
-      <div style={{ padding: 16, borderRadius: 16, border: "1px solid rgba(148,163,184,0.35)", background: "rgba(15,23,42,0.9)" }}>
-        <div style={{ fontWeight: 900, marginBottom: 10 }}>My Credentials</div>
-        <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 10 }}>
-          /vcs の公開一覧から「自分のアドレス分だけ」抽出して表示
+      <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ fontWeight: 900 }}>Skills</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {profile.skills.map((s) => (
+            <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+              <span style={{ fontSize: 16 }}>⭐</span>
+              <span>{s.label}</span>
+              <span
+                style={{
+                  marginLeft: "auto",
+                  padding: "2px 8px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(96,165,250,0.6)",
+                  color: "#bfdbfe",
+                  fontSize: 11,
+                }}
+              >
+                {s.tag}
+              </span>
+            </div>
+          ))}
         </div>
+      </div>
 
-        <button
-          onClick={() => refreshVCs()}
-          style={{ padding: "8px 12px", borderRadius: 999, border: "none", cursor: "pointer", background: "#64748b", color: "#0f172a", fontWeight: 900 }}
-        >
-          Refresh
-        </button>
-
-        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-          {!walletAddr && <div style={{ fontSize: 13, color: "#9ca3af" }}>ウォレット接続すると表示されます</div>}
-          {walletAddr && myCredentials.length === 0 && <div style={{ fontSize: 13, color: "#9ca3af" }}>まだVCがありません（Issuerが発行後に表示されます）</div>}
-
-          {myCredentials.map((v) => (
-            <div key={v.id} style={{ borderRadius: 12, border: "1px solid rgba(75,85,99,0.9)", padding: 10, background: "rgba(15,23,42,0.95)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div style={{ fontSize: 13, fontWeight: 900 }}>
-                  {v.issuerId} → {shorten(v.holderAddress, 6)}
-                </div>
-                <div style={{ fontSize: 11, color: "#9ca3af", fontFamily: "monospace" }}>
-                  {new Date(v.issuedAt).toLocaleString()}
-                </div>
+      <div style={{ gridColumn: "1 / -1", display: "grid", gap: 8 }}>
+        <div style={{ fontWeight: 900 }}>Experiences</div>
+        <div style={{ display: "grid", gap: 12 }}>
+          {profile.experiences.map((exp) => (
+            <div key={exp.org} style={{ display: "grid", gap: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+                <span style={{ color: "#cbd5e1", width: 90 }}>{exp.period}</span>
+                <span style={{ fontWeight: 700 }}>{exp.org}</span>
+                <span
+                  style={{
+                    marginLeft: "auto",
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    border: "1px solid rgba(148,163,184,0.6)",
+                    color: "#e2e8f0",
+                    fontSize: 11,
+                  }}
+                >
+                  {exp.tag}
+                </span>
               </div>
-              <div style={{ marginTop: 6, fontSize: 11, fontFamily: "monospace", wordBreak: "break-all" }}>
-                {shorten(v.vcJwt, 70)}
+              <div style={{ display: "grid", gap: 4, paddingLeft: 18 }}>
+                {exp.roles.map((role) => (
+                  <div key={role.title} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12, color: "#cbd5e1" }}>
+                    <span style={{ width: 90 }}>{role.period}</span>
+                    <span>{role.title}</span>
+                    <span
+                      style={{
+                        marginLeft: "auto",
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        border: "1px solid rgba(148,163,184,0.6)",
+                        color: "#e2e8f0",
+                        fontSize: 11,
+                      }}
+                    >
+                      {role.tag}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function normalizeProfile(raw: any): Profile | null {
+  try {
+    if (!raw || typeof raw !== "object") return null;
+    // skills: allow array or newline-separated string ("label @tag")
+    let skills: { label: string; tag: string }[] = [];
+    if (Array.isArray(raw.skills)) {
+      skills = raw.skills.map((s: any) => ({
+        label: typeof s?.label === "string" ? s.label : String(s ?? ""),
+        tag: typeof s?.tag === "string" ? s.tag : "",
+      }));
+    } else if (typeof raw.skills === "string") {
+      skills = raw.skills
+        .split("\n")
+        .map((line: string) => line.trim())
+        .filter((line) => line.length > 0)
+        .map((line) => {
+          const [label, tag] = line.split("@");
+          return { label: label.trim(), tag: tag ? tag.trim() : "" };
+        });
+    }
+
+    // experiences: allow array of full objects or newline-separated string
+    let experiences: Profile["experiences"] = [];
+  if (Array.isArray(raw.experiences)) {
+    experiences = raw.experiences
+      .map((e: any) => ({
+        period: typeof e?.period === "string" ? e.period : "",
+        org: typeof e?.org === "string" ? e.org : typeof e?.title === "string" ? e.title : "",
+          tag: typeof e?.tag === "string" ? e.tag : "",
+          roles: Array.isArray(e?.roles)
+            ? e.roles
+                .map((r: any) => ({
+                  period: typeof r?.period === "string" ? r.period : "",
+                  title: typeof r?.title === "string" ? r.title : "",
+                  tag: typeof r?.tag === "string" ? r.tag : "",
+                }))
+                .filter((r: any) => r.period || r.title)
+            : [],
+        }))
+        .filter((e) => e.period || e.org || e.roles.length > 0);
+  } else if (typeof raw.experiences === "string") {
+    const lines = raw.experiences
+      .split("\n")
+      .map((line: string) => line.trim())
+      .filter((line) => line.length > 0);
+
+    let current: Profile["experiences"][number] | null = null;
+    const parsed: Profile["experiences"] = [];
+
+    for (const line of lines) {
+      const isRole = line.startsWith("-") || line.startsWith("・") || line.startsWith("●");
+      const cleaned = line.replace(/^[-・●]\s*/, "");
+
+      // period 抽出: 先頭に年や期間があれば period とみなす
+      let period = "";
+      let rest = cleaned;
+      const m = cleaned.match(/^([0-9]{2,4}[^ ]*)\s+(.*)$/);
+      if (m) {
+        period = m[1].trim();
+        rest = m[2].trim();
+      }
+
+      // タグ抽出: 全角/半角カッコの末尾部分をタグとみなす
+      let orgOrTitle = rest;
+      let tag = "";
+      const tagMatch = rest.match(/^(.*?)[（(]([^（）()]*)[）)]\s*$/);
+      if (tagMatch) {
+        orgOrTitle = tagMatch[1].trim();
+        tag = tagMatch[2].trim();
+      }
+
+      if (isRole) {
+        if (!current) {
+          current = { period: "", org: "Other", tag: "", roles: [] };
+          parsed.push(current);
+        }
+        current.roles.push({ period, title: orgOrTitle, tag });
+      } else {
+        current = { period, org: orgOrTitle, tag, roles: [] };
+        parsed.push(current);
+      }
+    }
+
+    experiences = parsed;
+  }
+
+    return {
+      name: typeof raw.name === "string" ? raw.name : defaultProfile.name,
+      age: typeof raw.age === "number" || typeof raw.age === "string" ? raw.age : defaultProfile.age,
+      title: typeof raw.title === "string" ? raw.title : defaultProfile.title,
+      company: typeof raw.company === "string" ? raw.company : defaultProfile.company,
+      visibility: typeof raw.visibility === "string" ? raw.visibility : defaultProfile.visibility,
+      skills: skills.length > 0 ? skills : defaultProfile.skills,
+      experiences: experiences.length > 0 ? experiences : defaultProfile.experiences,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export default function HolderPage() {
+  const { walletAddr } = useWallet();
+  const [storedProfile, setStoredProfile] = React.useState<Profile | null>(null);
+
+  React.useEffect(() => {
+    if (!walletAddr) {
+      setStoredProfile(null);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(`profile:${walletAddr.toLowerCase()}`);
+      if (raw) {
+        const parsed = normalizeProfile(JSON.parse(raw));
+        setStoredProfile(parsed);
+      } else {
+        setStoredProfile(null);
+      }
+    } catch {
+      setStoredProfile(null);
+    }
+  }, [walletAddr]);
+
+  const { profile, found } = useMemo(() => {
+    if (!walletAddr) return { profile: defaultProfile, found: false };
+    if (storedProfile) return { profile: storedProfile, found: true };
+    const p = profilesByAddress[walletAddr.toLowerCase()];
+    return { profile: p ?? defaultProfile, found: !!p };
+  }, [walletAddr, storedProfile]);
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
+      {!walletAddr && (
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 12,
+            border: "1px solid rgba(148,163,184,0.35)",
+            background: "rgba(15,23,42,0.9)",
+            fontSize: 13,
+            color: "#cbd5e1",
+          }}
+        >
+          ウォレットを接続するとプロフィールが表示されます（ヘッダの Connect から接続してください）。
+        </div>
+      )}
+
+      {walletAddr && (
+      <ProfileCard profile={profile} walletAddr={walletAddr} found={found} />
+      )}
     </div>
   );
 }
