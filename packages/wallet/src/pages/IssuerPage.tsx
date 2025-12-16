@@ -21,16 +21,47 @@ function shorten(v: string, len = 6) {
 export default function IssuerPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [requests, setRequests] = useState<IssueRequest[]>([]);
+  const [issuerOptions, setIssuerOptions] = useState<string[]>([]);
+  const [selectedIssuer, setSelectedIssuer] = useState<string | null>(null);
 
-  async function refresh() {
-    const res = await fetch(`${API_BASE}/requests?status=requested`);
+  async function refresh(sel: string | null = selectedIssuer) {
+    if (!sel) {
+      setRequests([]);
+      return;
+    }
+    const res = await fetch(`${API_BASE}/requests?status=requested&issuerId=${encodeURIComponent(sel)}`);
     const data = await res.json();
     setRequests(data.requests ?? []);
   }
 
   useEffect(() => {
-    refresh().catch(() => {});
+    (async () => {
+      try {
+        const saved = localStorage.getItem("company:selectedIssuer");
+        const res = await fetch(`${API_BASE}/issuers`);
+        const data = await res.json();
+        const ids = Array.isArray(data?.issuers)
+          ? data.issuers.map((i: any) => i.issuerId).filter((v: string) => typeof v === "string")
+          : [];
+        setIssuerOptions(ids);
+
+        let next = saved && ids.includes(saved) ? saved : null;
+        if (!next && ids.length > 0) next = ids[0];
+
+        if (next) {
+          setSelectedIssuer(next);
+          localStorage.setItem("company:selectedIssuer", next);
+          await refresh(next);
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
   }, []);
+
+  useEffect(() => {
+    if (selectedIssuer) refresh(selectedIssuer).catch(() => {});
+  }, [selectedIssuer]);
 
   async function issueFromRequest(id: string) {
     try {
@@ -61,7 +92,7 @@ export default function IssuerPage() {
         <div>
           <div style={{ fontWeight: 900 }}>Issuer — 未処理依頼</div>
           <div style={{ fontSize: 12, color: "#9ca3af" }}>
-            この画面ではウォレット接続しません（Issuerはサーバ側の鍵で発行）
+            この画面ではウォレット接続しません（Issuerはサーバ側の鍵で発行） / 選択中: {selectedIssuer ?? "未選択"}
           </div>
         </div>
 
@@ -71,7 +102,8 @@ export default function IssuerPage() {
       </div>
 
       <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-        {requests.length === 0 && <div style={{ fontSize: 13, color: "#9ca3af" }}>未処理の依頼はありません</div>}
+        {!selectedIssuer && <div style={{ fontSize: 13, color: "#f97316" }}>組織を選択してください（/company でも変更できます）</div>}
+        {selectedIssuer && requests.length === 0 && <div style={{ fontSize: 13, color: "#9ca3af" }}>未処理の依頼はありません</div>}
 
         {requests.map((r) => (
           <div key={r.id} style={{ borderRadius: 12, border: "1px solid rgba(75,85,99,0.9)", padding: 10, background: "rgba(15,23,42,0.95)" }}>

@@ -63,6 +63,18 @@ app.get("/issuer/:issuerId", async (req, res) => {
     }
 });
 /**
+ * issuer一覧
+ */
+app.get("/issuers", async (_req, res) => {
+    try {
+        const issuers = await listIssuers();
+        return res.json({ issuers });
+    }
+    catch (e) {
+        return res.status(500).json({ error: e?.message ?? String(e) });
+    }
+});
+/**
  * issuer登録（managed issuer作成）
  */
 app.post("/register-issuer", async (req, res) => {
@@ -70,11 +82,11 @@ app.post("/register-issuer", async (req, res) => {
         const { issuerId, address, chainId } = req.body ?? {};
         if (!issuerId || typeof issuerId !== "string")
             return res.status(400).json({ error: "issuerId required" });
-        if (!address || typeof address !== "string" || !isHexAddr(address))
+        if (address && (typeof address !== "string" || !isHexAddr(address)))
             return res.status(400).json({ error: "address must be 0x..." });
         const rec = await createManagedIssuer({
             issuerId,
-            address,
+            address: address && typeof address === "string" ? address : undefined,
             chainId: typeof chainId === "number" ? chainId : 31337,
         });
         return res.json({
@@ -240,9 +252,12 @@ app.post("/requests/:id/issue", async (req, res) => {
 /**
  * 公開VC一覧
  */
-app.get("/vcs", async (_req, res) => {
+app.get("/vcs", async (req, res) => {
     try {
-        const vcs = await readJson(VCS_PATH, []);
+        const issuerId = req.query.issuerId;
+        let vcs = await readJson(VCS_PATH, []);
+        if (issuerId)
+            vcs = vcs.filter((v) => v.issuerId === issuerId);
         return res.json({ vcs });
     }
     catch (e) {

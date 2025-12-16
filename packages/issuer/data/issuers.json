@@ -1,6 +1,6 @@
 [
   {
-    "issuerId": "companyB",
+    "issuerId": "B社",
     "did": "did:ethr:eip155:31337:0x2A36FA11ed761C6febe12f84cC35c5B0cf0A5131",
     "address": "0x2A36FA11ed761C6febe12f84cC35c5B0cf0A5131",
     "publicJwk": {
@@ -18,5 +18,26 @@
     },
     "managed": true,
     "createdAt": "2025-12-15T17:31:04.985Z"
+  },
+  {
+    "issuerId": "ブロックチェーン大学",
+    "did": "did:ethr:eip155:31337:0xe0B3cb31bE920891CC4f22e38f7F7b1334EC149B",
+    "address": "0xe0B3cb31bE920891CC4f22e38f7F7b1334EC149B",
+    "ethPrivateKey": "0x8c382f8f7e58ca43aece8c7d2d821a20c9557a7c5e6647bffc5b77ac6509bb39",
+    "publicJwk": {
+      "kty": "EC",
+      "x": "R1fpTGZbj18B9nOL9vWHLXR75ne-NCqeEoNh_az_QM0",
+      "y": "FhDAyGjBnnGlLpPorVpBgg5skSpDW_rwa5xlT3D1iBM",
+      "crv": "secp256k1"
+    },
+    "privateJwk": {
+      "kty": "EC",
+      "x": "R1fpTGZbj18B9nOL9vWHLXR75ne-NCqeEoNh_az_QM0",
+      "y": "FhDAyGjBnnGlLpPorVpBgg5skSpDW_rwa5xlT3D1iBM",
+      "crv": "secp256k1",
+      "d": "a6fSKT25Kq8T9PzTioe0sxpNsTpV8Byh65tty31msyc"
+    },
+    "managed": true,
+    "createdAt": "2025-12-16T09:26:26.973Z"
   }
 ]

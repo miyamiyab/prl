@@ -51,8 +51,19 @@ function decodeJwt(jwt: string): {
     if (parts.length !== 3) return null;
     const [h, p, s] = parts;
 
-    const headerJson = atob(h.replace(/-/g, "+").replace(/_/g, "/"));
-    const payloadJson = atob(p.replace(/-/g, "+").replace(/_/g, "/"));
+    const decode = (b64url: string) => {
+      const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+      const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
+      const bin = atob(b64 + pad);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return typeof TextDecoder !== "undefined"
+        ? new TextDecoder().decode(bytes)
+        : decodeURIComponent(bytes.reduce((s, b) => s + "%" + ("00" + b.toString(16)).slice(-2), ""));
+    };
+
+    const headerJson = decode(h);
+    const payloadJson = decode(p);
 
     const sigBytes = b64urlToBytes(s);
     const sigHex = "0x" + bytesToHex(sigBytes);
@@ -154,21 +165,6 @@ export default function VerifierPage() {
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "0.9fr 1.2fr", gap: 16 }}>
-      {status && (
-        <div
-          style={{
-            gridColumn: "1 / -1",
-            padding: 10,
-            borderRadius: 14,
-            border: "1px solid rgba(148,163,184,0.35)",
-            background: "rgba(15,23,42,0.9)",
-            fontSize: 13,
-          }}
-        >
-          {status}
-        </div>
-      )}
-
       <div style={{ padding: 16, borderRadius: 16, border: "1px solid rgba(148,163,184,0.35)", background: "rgba(15,23,42,0.9)" }}>
         <div style={{ fontWeight: 900 }}>Verifier — ユーザー一覧</div>
         <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>この画面ではウォレット接続しません</div>
@@ -225,8 +221,8 @@ export default function VerifierPage() {
           border: "1px solid rgba(148,163,184,0.35)",
           background: "rgba(15,23,42,0.9)",
           display: "grid",
-          gridTemplateRows: "minmax(0,1fr) minmax(0,1fr)",
           gap: 12,
+          alignContent: "start",
         }}
       >
         <div style={{ overflow: "auto" }}>
@@ -250,13 +246,13 @@ export default function VerifierPage() {
                       onClick={() => setSelectedVcId(v.id)}
                       style={{ padding: "8px 12px", borderRadius: 999, border: "none", cursor: "pointer", background: "#64748b", color: "#0f172a", fontWeight: 900 }}
                     >
-                      View
+                      詳細
                     </button>
                     <button
                       onClick={() => verifyVc(v.vcJwt)}
                       style={{ padding: "8px 12px", borderRadius: 999, border: "none", cursor: "pointer", background: "#22c55e", color: "#0f172a", fontWeight: 900 }}
                     >
-                      Verify
+                      検証
                     </button>
                   </div>
                 </div>
@@ -267,7 +263,21 @@ export default function VerifierPage() {
 
         <div style={{ borderRadius: 12, border: "1px solid rgba(75,85,99,0.9)", padding: 10, background: "rgba(15,23,42,0.95)", overflow: "auto" }}>
           <div style={{ fontWeight: 900, marginBottom: 6 }}>VC details (JWT decode + signature + issuer public key)</div>
-          {!selectedVc && <div style={{ fontSize: 13, color: "#9ca3af" }}>View を押すと header/payload/署名/公開鍵 を表示します</div>}
+          {status && (
+            <div
+              style={{
+                padding: 8,
+                borderRadius: 10,
+                border: "1px solid rgba(148,163,184,0.35)",
+                background: "rgba(15,23,42,0.9)",
+                fontSize: 12,
+                marginBottom: 8,
+              }}
+            >
+              {status}
+            </div>
+          )}
+          {!selectedVc && <div style={{ fontSize: 13, color: "#9ca3af" }}>詳細 を押すと header/payload/署名/公開鍵 を表示します</div>}
           {selectedVc && !decoded && <div style={{ fontSize: 13, color: "#f97316" }}>デコード失敗</div>}
 
           {selectedVc && decoded && (

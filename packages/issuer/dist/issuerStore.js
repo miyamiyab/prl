@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { exportJWK, generateKeyPair, importJWK } from "jose";
+import { Wallet } from "ethers";
 const DATA_DIR = path.join(process.cwd(), "data");
 const ISSUERS_PATH = path.join(DATA_DIR, "issuers.json");
 async function ensureDataDir() {
@@ -58,14 +59,18 @@ export async function registerExternalIssuer(params) {
 export async function createManagedIssuer(params) {
     const chainId = params.chainId ?? 31337;
     const now = new Date().toISOString();
+    // address が未指定ならランダムに生成
+    const wallet = params.address ? null : Wallet.createRandom();
+    const address = params.address ?? wallet.address;
     const { publicKey, privateKey } = await generateKeyPair("ES256K");
     const publicJwk = await exportJWK(publicKey);
     const privateJwk = await exportJWK(privateKey);
-    const did = `did:ethr:eip155:${chainId}:${params.address}`;
+    const did = `did:ethr:eip155:${chainId}:${address}`;
     const rec = {
         issuerId: params.issuerId,
         did,
-        address: params.address,
+        address,
+        ethPrivateKey: wallet?.privateKey,
         publicJwk,
         privateJwk,
         managed: true,
@@ -107,12 +112,14 @@ export async function getIssuerPublicJwk(issuerId) {
  * 初期issuer(companyB)が無ければ作る（既にあるなら何もしない）
  */
 export async function ensureDefaultIssuer() {
-    const exists = await getIssuer("companyB");
-    if (exists)
-        return;
-    await createManagedIssuer({
-        issuerId: "companyB",
-        address: "0x2A36FA11ed761C6febe12f84cC35c5B0cf0A5131",
-        chainId: 31337,
-    });
+    const seeds = [
+        { issuerId: "B社", address: "0x2A36FA11ed761C6febe12f84cC35c5B0cf0A5131", chainId: 31337 },
+        { issuerId: "ブロックチェーン大学", address: "0xe0B3cb31bE920891CC4f22e38f7F7b1334EC149B", chainId: 31337 },
+    ];
+    for (const seed of seeds) {
+        const exists = await getIssuer(seed.issuerId);
+        if (exists)
+            continue;
+        await createManagedIssuer(seed);
+    }
 }
